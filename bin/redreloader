@@ -1,0 +1,36 @@
+#!/usr/bin/env ruby
+
+require 'yaml'
+require '../lib/redreloader'
+
+fn = ARGV[0]
+fn ||= '/etc/redreloader.conf'
+
+config = YAML::load(File.read(fn))
+puts config.inspect
+
+Redreloader.redis = Redis.new(config['redis'])
+
+def log(str)
+  puts "[#{Time.now}] ---> #{str}"
+end
+
+def run!(cmd)
+  log "Running #{cmd.inspect}:"
+  system cmd
+  log "Returned #{$!.to_i}"
+end
+
+digest = Redreloader.calcmd5(File.read(config['file']))
+
+run! config['command']
+
+loop do
+  Redreloader.if_changed_from(config['key'], digest) do |newdata, newdigest|
+    log "File changed"
+    File.open(config['file'], 'w') {|io| io.write(newdata) }
+    digest = newdigest
+    run! config['command']
+  end
+  sleep config['interval'] || 1
+end
