@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'yaml'
-require '../lib/redreloader'
+require 'redreloader'
 
 fn = ARGV[0]
 fn ||= '/etc/redreloader.conf'
