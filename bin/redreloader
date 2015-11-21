@@ -9,7 +9,7 @@ fn ||= '/etc/redreloader.conf'
 config = YAML::load(File.read(fn))
 puts config.inspect
 
-Redreloader.redis = Redis.new(config['redis'])
+client = Redreloader.new(config['redis'])
 
 def log(str)
   puts "[#{Time.now}] ---> #{str}"
@@ -23,14 +23,17 @@ end
 
 digest = Redreloader.calcmd5(File.read(config['file']))
 
-run! config['command']
+#run! config['command']
 
-loop do
-  Redreloader.if_changed_from(config['key'], digest) do |newdata, newdigest|
-    log "File changed"
+begin
+  client.process_changes(config['key'], digest) do |newdata, newdigest|
+    log "File changed (#{newdata.length} bytes)"
     File.open(config['file'], 'w') {|io| io.write(newdata) }
     digest = newdigest
     run! config['command']
   end
-  sleep config['interval'] || 1
+rescue Redis::BaseConnectionError => error
+  log "#{error}, retrying in 3"
+  sleep 3
+  retry
 end

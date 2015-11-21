@@ -1,2 +1,3 @@
+v0.3. use Pub/sub to watch for changes instead of polling
 v0.2. fix dependency in binary
 v0.1. redreloader downloads a file from redis and runs a command on change
